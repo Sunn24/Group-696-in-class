@@ -68,6 +68,14 @@ h1 {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+.col.full .col-head {
+  background: var(--accent);
+  color: #fff;
+}
+.col.full {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
 .col.over .col-head {
   background: var(--danger-soft);
   color: var(--danger);
