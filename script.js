@@ -9,17 +9,27 @@ function showToast(msg) {
   toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
 }
 
+function sortList(list) {
+  const cards = Array.from(list.querySelectorAll('.card'));
+  cards.sort((a, b) => a.dataset.name.localeCompare(b.dataset.name, 'en', { sensitivity: 'base' }));
+  cards.forEach(card => list.appendChild(card));
+}
+
 function updateCounts() {
   document.querySelectorAll('.col').forEach(col => {
     const isPool = col.classList.contains('pool');
     const list = col.querySelector('.list');
+
+    sortList(list);
+
     const cardCount = list.querySelectorAll('.card').length;
     const countEl = col.querySelector('.count');
     if (isPool) {
-      countEl.textContent = cardCount;
+      if (countEl) countEl.remove();
     } else {
       countEl.textContent = `${cardCount}/${MAX_PER_GROUP}`;
       col.classList.toggle('over', cardCount > MAX_PER_GROUP);
+      col.classList.toggle('full', cardCount === MAX_PER_GROUP);
     }
     const placeholder = list.querySelector('.placeholder');
     if (cardCount === 0 && !placeholder) {
@@ -165,6 +175,7 @@ function attachCardEvents(card) {
 }
 
 document.querySelectorAll('.card').forEach(attachCardEvents);
+updateCounts();
 
 // Test hook only — not used by the app itself. Lets test.html attach the
 // real drag handler to cards it creates dynamically after page load.
