@@ -1,4 +1,4 @@
-const MAX_PER_GROUP = 7;
+const MAX_PER_GROUP = 5;
 const toastEl = document.getElementById('toast');
 let toastTimer = null;
 
