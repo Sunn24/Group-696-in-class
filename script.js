@@ -9,39 +9,111 @@ function showToast(msg) {
   toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
 }
 
+// ---- Board / data model ----
+// Each card lives in exactly one column at all times, identified by the
+// column's data-index (0 = pool, 1-5 = groups). The source of truth for
+// *who is in which group* is Firebase (see firebase-config.js); the DOM
+// is just a rendering of the latest data we received from it.
+
+const colsByIndex = {};
+document.querySelectorAll('.col').forEach(col => {
+  colsByIndex[col.dataset.index] = col;
+});
+
+const cardsByName = {};
+document.querySelectorAll('.card').forEach(card => {
+  cardsByName[card.dataset.name] = card;
+});
+
 function sortList(list) {
   const cards = Array.from(list.querySelectorAll('.card'));
   cards.sort((a, b) => a.dataset.name.localeCompare(b.dataset.name, 'en', { sensitivity: 'base' }));
   cards.forEach(card => list.appendChild(card));
 }
 
-function updateCounts() {
-  document.querySelectorAll('.col').forEach(col => {
-    const isPool = col.classList.contains('pool');
-    const list = col.querySelector('.list');
+function refreshColumn(col) {
+  const isPool = col.classList.contains('pool');
+  const list = col.querySelector('.list');
 
-    sortList(list);
+  sortList(list);
 
-    const cardCount = list.querySelectorAll('.card').length;
-    const countEl = col.querySelector('.count');
-    if (isPool) {
-      if (countEl) countEl.remove();
-    } else {
-      countEl.textContent = `${cardCount}/${MAX_PER_GROUP}`;
-      col.classList.toggle('over', cardCount > MAX_PER_GROUP);
-      col.classList.toggle('full', cardCount === MAX_PER_GROUP);
-    }
-    const placeholder = list.querySelector('.placeholder');
-    if (cardCount === 0 && !placeholder) {
-      const ph = document.createElement('div');
-      ph.className = 'placeholder';
-      ph.textContent = 'ลากมาวางที่นี่';
-      list.appendChild(ph);
-    } else if (cardCount > 0 && placeholder) {
-      placeholder.remove();
+  const cardCount = list.querySelectorAll('.card').length;
+  const countEl = col.querySelector('.count');
+  if (isPool) {
+    if (countEl) countEl.remove();
+  } else {
+    countEl.textContent = `${cardCount}/${MAX_PER_GROUP}`;
+    col.classList.toggle('over', cardCount > MAX_PER_GROUP);
+    col.classList.toggle('full', cardCount === MAX_PER_GROUP);
+  }
+  const placeholder = list.querySelector('.placeholder');
+  if (cardCount === 0 && !placeholder) {
+    const ph = document.createElement('div');
+    ph.className = 'placeholder';
+    ph.textContent = 'ลากมาวางที่นี่';
+    list.appendChild(ph);
+  } else if (cardCount > 0 && placeholder) {
+    placeholder.remove();
+  }
+}
+
+function refreshAllColumns() {
+  document.querySelectorAll('.col').forEach(refreshColumn);
+}
+
+// Render the whole board from the latest data snapshot coming from Firebase.
+// `data` looks like: { "Akkaravit": 3, "Boonyakorn": 1, ... }
+// A name missing from `data` is treated as still being in the pool (0).
+function renderBoard(data) {
+  const assignments = data || {};
+  Object.keys(cardsByName).forEach(name => {
+    const idx = assignments[name] !== undefined ? String(assignments[name]) : '0';
+    const targetCol = colsByIndex[idx] || colsByIndex['0'];
+    const targetList = targetCol.querySelector('.list');
+    if (cardsByName[name].parentElement !== targetList) {
+      targetList.appendChild(cardsByName[name]);
     }
   });
+  refreshAllColumns();
 }
+
+// Ask Firebase to move `name` into group `toIndex`. The transaction re-checks
+// the current member count on the server side, so two people dropping into
+// the same last open slot at the same instant can't both succeed.
+function moveCard(name, toIndex) {
+  assignmentsRef.transaction((current) => {
+    const data = current || {};
+    if (toIndex !== '0') {
+      const countInTarget = Object.entries(data)
+        .filter(([n, idx]) => String(idx) === String(toIndex) && n !== name)
+        .length;
+      if (countInTarget >= MAX_PER_GROUP) {
+        return; // abort — someone else filled this group first
+      }
+    }
+    data[name] = toIndex === '0' ? null : Number(toIndex); // null deletes the key (= pool)
+    return data;
+  }, (error, committed) => {
+    if (error) {
+      console.error('Move failed:', error);
+      showToast('เชื่อมต่อฐานข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง');
+    } else if (!committed) {
+      const headerText = colsByIndex[toIndex].querySelector('.col-head span').textContent;
+      showToast(`❌ ${headerText} มีสมาชิกครบ ${MAX_PER_GROUP} คนแล้ว ไม่สามารถเพิ่มได้`);
+    }
+    // On success, the 'value' listener below fires and calls renderBoard()
+    // for us — including for every other person's open tab.
+  });
+}
+
+// Live subscription: keeps every connected browser in sync, and is also
+// what fills in the saved state the moment someone opens the page.
+assignmentsRef.on('value', (snapshot) => {
+  renderBoard(snapshot.val());
+}, (error) => {
+  console.error('Firebase read failed:', error);
+  showToast('เชื่อมต่อฐานข้อมูลไม่ได้ กรุณาตรวจสอบการตั้งค่า firebase-config.js');
+});
 
 // ---- Pointer-based drag & drop (works on mouse, touch, and pen —
 // including Safari/iOS and Android, unlike native HTML5 DnD) ----
@@ -148,25 +220,17 @@ function onPointerUp(e) {
   const targetCol = colFromPoint(e.clientX, e.clientY);
   const fromCol = fromList.closest('.col');
 
-  if (!targetCol || targetCol === fromCol) {
-    returnCardToOrigin(card, fromList);
-  } else {
-    const isPool = targetCol.classList.contains('pool');
-    const targetList = targetCol.querySelector('.list');
-    const currentCount = targetList.querySelectorAll('.card').length;
+  // Snap back to the old spot right away — the real, authoritative position
+  // gets set moments later by the Firebase 'value' listener once the write
+  // (or rejection) comes back, so this stays correct even if someone else
+  // filled the target group in the meantime.
+  returnCardToOrigin(card, fromList);
+  refreshColumn(fromCol);
 
-    if (!isPool && currentCount >= MAX_PER_GROUP) {
-      const headerText = targetCol.querySelector('.col-head span').textContent;
-      showToast(`❌ ${headerText} มีสมาชิกครบ ${MAX_PER_GROUP} คนแล้ว ไม่สามารถเพิ่มได้`);
-      returnCardToOrigin(card, fromList);
-    } else {
-      const ph = targetList.querySelector('.placeholder');
-      if (ph) ph.remove();
-      targetList.appendChild(card);
-    }
+  if (targetCol && targetCol !== fromCol) {
+    moveCard(card.dataset.name, targetCol.dataset.index);
   }
 
-  updateCounts();
   drag = null;
 }
 
@@ -175,7 +239,7 @@ function attachCardEvents(card) {
 }
 
 document.querySelectorAll('.card').forEach(attachCardEvents);
-updateCounts();
+refreshAllColumns();
 
 // Test hook only — not used by the app itself. Lets test.html attach the
 // real drag handler to cards it creates dynamically after page load.
