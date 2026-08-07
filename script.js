@@ -58,12 +58,14 @@ function returnCardToOrigin(card, originList) {
 }
 
 function onPointerDown(e) {
+  if (drag) return; // a drag is already in progress (e.g. second finger) — ignore
   if (e.pointerType === 'mouse' && e.button !== 0) return;
   const card = e.currentTarget;
   const rect = card.getBoundingClientRect();
 
   drag = {
     card,
+    pointerId: e.pointerId,
     fromList: card.closest('.list'),
     offsetX: e.clientX - rect.left,
     offsetY: e.clientY - rect.top,
@@ -74,14 +76,20 @@ function onPointerDown(e) {
     moved: false,
   };
 
-  card.setPointerCapture(e.pointerId);
-  card.addEventListener('pointermove', onPointerMove);
-  card.addEventListener('pointerup', onPointerUp);
-  card.addEventListener('pointercancel', onPointerUp);
+  // Listen on `document`, not the card: once the card is re-parented to
+  // <body> mid-drag (see onPointerMove), an element that still holds
+  // pointer capture can silently lose it in some browsers, which would
+  // stop card-scoped listeners from ever firing again and leave the
+  // card stuck mid-drag. Document-level listeners aren't affected by
+  // where the card lives in the DOM, so they keep receiving events
+  // through pointerup no matter what.
+  document.addEventListener('pointermove', onPointerMove);
+  document.addEventListener('pointerup', onPointerUp);
+  document.addEventListener('pointercancel', onPointerUp);
 }
 
 function onPointerMove(e) {
-  if (!drag) return;
+  if (!drag || e.pointerId !== drag.pointerId) return;
   const dx = e.clientX - drag.startX;
   const dy = e.clientY - drag.startY;
 
@@ -106,13 +114,12 @@ function onPointerMove(e) {
 }
 
 function onPointerUp(e) {
-  if (!drag) return;
+  if (!drag || e.pointerId !== drag.pointerId) return;
   const { card, fromList, moved } = drag;
 
-  card.removeEventListener('pointermove', onPointerMove);
-  card.removeEventListener('pointerup', onPointerUp);
-  card.removeEventListener('pointercancel', onPointerUp);
-  try { card.releasePointerCapture(e.pointerId); } catch (err) {}
+  document.removeEventListener('pointermove', onPointerMove);
+  document.removeEventListener('pointerup', onPointerUp);
+  document.removeEventListener('pointercancel', onPointerUp);
 
   clearDragoverHighlights();
 
@@ -158,3 +165,7 @@ function attachCardEvents(card) {
 }
 
 document.querySelectorAll('.card').forEach(attachCardEvents);
+
+// Test hook only — not used by the app itself. Lets test.html attach the
+// real drag handler to cards it creates dynamically after page load.
+window.__attachCardEvents = attachCardEvents;
