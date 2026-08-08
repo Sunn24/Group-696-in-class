@@ -126,7 +126,8 @@ h1 {
   padding: 8px;
   min-height: 60px;
   display: flex;
-  flex-direction: column;
+  column-count:5;
+  /*flex-direction: column;*/
   gap: 6px;
 }
 .placeholder.no-result {
