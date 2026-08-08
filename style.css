@@ -34,7 +34,7 @@ h1 {
   gap: 14px;
   align-items: start;
 }
-@media (max-width: 768px) {
+@media (max-width: 1000px) {
   .board {
     grid-template-columns: (2,1fr);
     gap: 20px;
