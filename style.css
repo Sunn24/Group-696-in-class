@@ -34,10 +34,10 @@ h1 {
   gap: 14px;
   align-items: start;
 }
-@media (max-width: 1000px) {
+@media (max-width: 768px) {
   .board {
-    grid-template-columns: (2,1fr);
-    gap: 20px;
+    grid-template-columns: repeat(2,1fr);
+    /*gap: 20px;*/
   }
   .col{
     flex: 1;
@@ -45,7 +45,7 @@ h1 {
 }
 .two-columns{
   display: flex;
-  /*gap: 20px;*/
+  gap: 20px;
 }
 .col {
   background: var(--panel);
@@ -53,6 +53,7 @@ h1 {
   border-radius: 10px;
   min-height: 120px;
   display: flex;
+  /*flex: 1;*/
   flex-direction: column;
   overflow: hidden;
   transition: box-shadow .15s ease, border-color .15s ease;
