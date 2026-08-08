@@ -72,9 +72,14 @@
     </div>
 </div>
 <br>
-<p class="sub">หากพบปัญหาในการใช้งาน โปรดแจ้ง <strong><a href="sunkrittapas@gmail.com"> sunkrittapas@gmail.com </a></strong></p>
+<p class="sub">หากพบปัญหาในการใช้งาน โปรดแจ้ง <strong><a id="email-link" href="#">sunkrittapas@gmail.com</a></strong></p>
 <div class="toast" id="toast"></div>
-
+<script>
+  const user = "sunkrittapas";
+  const domain = "gmail.com";
+  document.getElementById("email-link").href = "mailto:" + user + "@" + domain;
+  document.getElementById("email-link").textContent = user + "@" + domain;
+</script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 <script src="./firebase-config.js"></script>
