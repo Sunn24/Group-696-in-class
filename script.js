@@ -61,6 +61,44 @@ function refreshAllColumns() {
   document.querySelectorAll('.col').forEach(refreshColumn);
 }
 
+// ---- Search box for the pool column ----
+// Filters cards currently sitting in the pool by name (case-insensitive,
+// partial match). Cards that have been assigned to a group are always
+// shown there regardless of the search text — the filter only hides pool
+// cards, it never moves anything.
+const poolSearchEl = document.getElementById('poolSearch');
+
+function applyPoolFilter() {
+  if (!poolSearchEl) return;
+  const q = poolSearchEl.value.trim().toLowerCase();
+  const poolList = colsByIndex['0'].querySelector('.list');
+  let anyVisible = false;
+
+  poolList.querySelectorAll('.card').forEach(card => {
+    const match = !q || card.dataset.name.toLowerCase().includes(q);
+    card.style.display = match ? '' : 'none';
+    if (match) anyVisible = true;
+  });
+
+  let noResult = poolList.querySelector('.no-result');
+  if (!q || anyVisible) {
+    if (noResult) noResult.remove();
+  } else {
+    const placeholder = poolList.querySelector('.placeholder:not(.no-result)');
+    if (placeholder) placeholder.remove();
+    if (!noResult) {
+      noResult = document.createElement('div');
+      noResult.className = 'placeholder no-result';
+      poolList.appendChild(noResult);
+    }
+    noResult.textContent = `ไม่พบชื่อที่ตรงกับ "${poolSearchEl.value.trim()}"`;
+  }
+}
+
+if (poolSearchEl) {
+  poolSearchEl.addEventListener('input', applyPoolFilter);
+}
+
 // Render the whole board from the latest data snapshot coming from Firebase.
 // `data` looks like: { "Akkaravit": 3, "Boonyakorn": 1, ... }
 // A name missing from `data` is treated as still being in the pool (0).
@@ -75,6 +113,7 @@ function renderBoard(data) {
     }
   });
   refreshAllColumns();
+  applyPoolFilter();
 }
 
 // Ask Firebase to move `name` into group `toIndex`. The transaction re-checks
