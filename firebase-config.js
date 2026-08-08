@@ -13,4 +13,4 @@ const db = firebase.database();
 
 // เก็บผลลัพธ์การจัดกลุ่มไว้ที่ path นี้ในฐานข้อมูล
 // (เปลี่ยนชื่อ path ได้ถ้าต้องการใช้ฐานข้อมูลเดียวกันกับหลายวิชา/หลายบอร์ด)
-const assignmentsRef = db.ref('cpe2104696_group_assignments');
+const assignmentsRef = db.ref('2104696_group_assignment_1');
