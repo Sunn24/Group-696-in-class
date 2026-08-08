@@ -35,16 +35,12 @@ h1 {
   /*gap: 14px;*/
   align-items: start;
 }
-/*@media (max-width: 1000px) {
-  .board {
-    grid-template-columns: 1fr; }
-  .two-columns{
-    column-count:5;
-  }
-  .col{
-    flex: 1;
-  }
-}*/
+@media (max-width: 1000px) {
+  #poolList { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 560px) {
+  #poolList { grid-template-columns: repeat(2, 1fr); }
+}
 .two-columns{
   column-count:5;
 }
@@ -126,8 +122,12 @@ h1 {
   padding: 8px;
   min-height: 60px;
   display: flex;
-  column-count:5;
-  /*flex-direction: column;*/
+  flex-direction: column;
+  gap: 6px;
+}
+#poolList {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   gap: 6px;
 }
 .placeholder.no-result {
