@@ -37,12 +37,17 @@ h1 {
 @media (max-width: 1000px) {
   .board { grid-template-columns: 1fr; }
 }
+.two-columns{
+  display: flex;
+  /*gap: 20px;*/
+}
 .col {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
   min-height: 120px;
   display: flex;
+  flex: 1;
   flex-direction: column;
   overflow: hidden;
   transition: box-shadow .15s ease, border-color .15s ease;
