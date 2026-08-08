@@ -20,6 +20,17 @@ document.querySelectorAll('.col').forEach(col => {
   colsByIndex[col.dataset.index] = col;
 });
 
+// Build the pool's card elements from the name list in student_names.js, so the
+// roster lives in one file and never has to be hand-edited into the HTML.
+const poolListEl = document.getElementById('poolList');
+(typeof STUDENT_NAMES !== 'undefined' ? STUDENT_NAMES : []).forEach(name => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.name = name;
+  card.textContent = name;
+  poolListEl.appendChild(card);
+});
+
 const cardsByName = {};
 document.querySelectorAll('.card').forEach(card => {
   cardsByName[card.dataset.name] = card;
