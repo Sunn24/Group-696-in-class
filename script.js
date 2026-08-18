@@ -294,3 +294,74 @@ refreshAllColumns();
 // Test hook only — not used by the app itself. Lets test.html attach the
 // real drag handler to cards it creates dynamically after page load.
 window.__attachCardEvents = attachCardEvents;
+
+// ---- Admin actions: Reset / Random ----
+// Everyone who opens the page can see these buttons, so they're gated by a
+// simple PIN. This is NOT real security (anyone could read this file), it's
+// just enough friction to stop students from clicking it by accident or on
+// a whim. Change ADMIN_PIN to whatever you like.
+const ADMIN_PIN = '2104696';
+
+function checkAdminPin() {
+  if (sessionStorage.getItem('isAdmin') === 'true') return true;
+  const entered = prompt('กรุณาใส่รหัสผ่านสำหรับผู้ดูแล:');
+  if (entered === null) return false; // cancelled
+  if (entered === ADMIN_PIN) {
+    sessionStorage.setItem('isAdmin', 'true');
+    return true;
+  }
+  showToast('รหัสผ่านไม่ถูกต้อง');
+  return false;
+}
+
+function resetBoard() {
+  if (!checkAdminPin()) return;
+  if (!confirm('ยืนยันรีเซ็ต? รายชื่อทั้งหมดจะถูกย้ายกลับไปที่ "รายชื่อนิสิตในเวลา"')) return;
+  assignmentsRef.set(null, (error) => {
+    if (error) {
+      console.error('Reset failed:', error);
+      showToast('รีเซ็ตไม่สำเร็จ ลองใหม่อีกครั้ง');
+    } else {
+      showToast('รีเซ็ตเรียบร้อยแล้ว');
+    }
+  });
+}
+
+function randomizeBoard() {
+  if (!checkAdminPin()) return;
+  if (!confirm('ยืนยันสุ่มกลุ่ม? ระบบจะจัดกลุ่มใหม่แบบสุ่มให้ทุกคน (แทนที่การจัดกลุ่มปัจจุบัน)')) return;
+
+  const names = (typeof STUDENT_NAMES !== 'undefined' ? STUDENT_NAMES : []).slice();
+
+  // Fisher-Yates shuffle
+  for (let i = names.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [names[i], names[j]] = [names[j], names[i]];
+  }
+
+  // Fill groups 1-5 evenly, respecting MAX_PER_GROUP, leaving any overflow in the pool.
+  const numGroups = 5;
+  const data = {};
+  names.forEach((name, i) => {
+    const slot = Math.floor(i / numGroups);
+    const group = (i % numGroups) + 1;
+    if (slot < MAX_PER_GROUP) {
+      data[name] = group;
+    }
+    // else: leaves this student in the pool (key omitted -> treated as pool)
+  });
+
+  assignmentsRef.set(data, (error) => {
+    if (error) {
+      console.error('Random assign failed:', error);
+      showToast('สุ่มกลุ่มไม่สำเร็จ ลองใหม่อีกครั้ง');
+    } else {
+      showToast('สุ่มกลุ่มเรียบร้อยแล้ว');
+    }
+  });
+}
+
+const resetBtnEl = document.getElementById('resetBtn');
+const randomBtnEl = document.getElementById('randomBtn');
+if (resetBtnEl) resetBtnEl.addEventListener('click', resetBoard);
+if (randomBtnEl) randomBtnEl.addEventListener('click', randomizeBoard);
