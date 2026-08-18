@@ -53,6 +53,12 @@ function refreshColumn(col) {
   if (isPool) {
     if (countEl) countEl.remove();
   } else {
+    // Balance rule: once some OTHER group has reached the hard cap of 5,
+    // this group's own cap drops to 4 (unless this IS the group that's
+    // already at 5) so the leftover seats spread out instead of piling
+    // into one group.
+    const isAtHardCap = cardCount >= MAX_PER_GROUP;
+    const effectiveMax = (anotherGroupIsFull && !isAtHardCap) ? MAX_PER_GROUP - 1 : MAX_PER_GROUP;
     countEl.textContent = `${cardCount}/${MAX_PER_GROUP}`;
     col.classList.toggle('over', cardCount > MAX_PER_GROUP);
     col.classList.toggle('full', cardCount === MAX_PER_GROUP);
@@ -69,7 +75,11 @@ function refreshColumn(col) {
 }
 
 function refreshAllColumns() {
-  document.querySelectorAll('.col').forEach(refreshColumn);
+  const groupCols = Array.from(document.querySelectorAll('.col:not(.pool)'));
+  const anyGroupAtHardCap = groupCols.some(col => col.querySelectorAll('.card').length >= MAX_PER_GROUP);
+ 
+  document.querySelectorAll('.col').forEach(col => refreshColumn(col, anyGroupAtHardCap));
+  //document.querySelectorAll('.col').forEach(refreshColumn);
 }
 
 // ---- Search box for the pool column ----
@@ -134,11 +144,29 @@ function moveCard(name, toIndex) {
   assignmentsRef.transaction((current) => {
     const data = current || {};
     if (toIndex !== '0') {
-      const countInTarget = Object.entries(data)
-        .filter(([n, idx]) => String(idx) === String(toIndex) && n !== name)
-        .length;
+      // Count current members of every group (excluding the student being
+      // moved, so moving within/around doesn't count them against themselves).
+      const counts = {};
+      Object.entries(data).forEach(([n, idx]) => {
+        if (n === name) return;
+        const key = String(idx);
+        counts[key] = (counts[key] || 0) + 1;
+      });
+      const countInTarget = counts[String(toIndex)] || 0;
+ 
+      // Hard cap: no group can ever exceed MAX_PER_GROUP (5).
       if (countInTarget >= MAX_PER_GROUP) {
-        return; // abort — someone else filled this group first
+        return; // abort — this group is completely full
+      }
+ 
+      // Balance rule: once ANY other group has already reached 5, this
+      // group is limited to one fewer (4) so the leftover seats spread
+      // out across groups instead of piling into a single one.
+      const anotherGroupIsFull = Object.entries(counts).some(
+        ([idx, count]) => idx !== '0' && idx !== String(toIndex) && count >= MAX_PER_GROUP
+      );
+      if (anotherGroupIsFull && countInTarget >= MAX_PER_GROUP - 1) {
+        return; // abort — capped at 4 because another group already has 5
       }
     }
     data[name] = toIndex === '0' ? null : Number(toIndex); // null deletes the key (= pool)
@@ -148,8 +176,14 @@ function moveCard(name, toIndex) {
       console.error('Move failed:', error);
       showToast('เชื่อมต่อฐานข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง');
     } else if (!committed) {
-      const headerText = colsByIndex[toIndex].querySelector('.col-head span').textContent;
-      showToast(`❌ ${headerText} มีสมาชิกครบ ${MAX_PER_GROUP} คนแล้ว ไม่สามารถเพิ่มได้`);
+      const targetCol = colsByIndex[toIndex];
+      const headerText = targetCol.querySelector('.col-head span').textContent;
+      const targetCount = targetCol.querySelectorAll('.card').length;
+      if (targetCount >= MAX_PER_GROUP) {
+        showToast(`❌ ${headerText} มีสมาชิกครบ ${MAX_PER_GROUP} คนแล้ว ไม่สามารถเพิ่มได้`);
+      } else {
+        showToast(`❌ ${headerText} รับได้สูงสุด ${MAX_PER_GROUP - 1} คน เพราะมีอีกกลุ่มครบ ${MAX_PER_GROUP} คนแล้ว`);
+      }
     }
     // On success, the 'value' listener below fires and calls renderBoard()
     // for us — including for every other person's open tab.
