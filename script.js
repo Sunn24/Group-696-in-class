@@ -11,7 +11,7 @@ function showToast(msg) {
 
 // ---- Board / data model ----
 // Each card lives in exactly one column at all times, identified by the
-// column's data-index (0 = pool, 1-5 = groups). The source of truth for
+// column's data-index (0 = pool, 1-4 = groups). The source of truth for
 // *who is in which group* is Firebase (see firebase-config.js); the DOM
 // is just a rendering of the latest data we received from it.
 
@@ -300,7 +300,7 @@ window.__attachCardEvents = attachCardEvents;
 // simple PIN. This is NOT real security (anyone could read this file), it's
 // just enough friction to stop students from clicking it by accident or on
 // a whim. Change ADMIN_PIN to whatever you like.
-const ADMIN_PIN = '2104696';
+const ADMIN_PIN = '2104696SystemAdmin';
 
 function checkAdminPin() {
   if (sessionStorage.getItem('isAdmin') === 'true') return true;
@@ -339,8 +339,8 @@ function randomizeBoard() {
     [names[i], names[j]] = [names[j], names[i]];
   }
 
-  // Fill groups 1-5 evenly, respecting MAX_PER_GROUP, leaving any overflow in the pool.
-  const numGroups = 5;
+  // Fill groups 1-4 evenly, respecting MAX_PER_GROUP, leaving any overflow in the pool.
+  const numGroups = 4;
   const data = {};
   names.forEach((name, i) => {
     const slot = Math.floor(i / numGroups);
