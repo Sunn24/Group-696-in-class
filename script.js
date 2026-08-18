@@ -303,11 +303,11 @@ window.__attachCardEvents = attachCardEvents;
 const ADMIN_PIN = '2104696SystemAdmin';
 
 function checkAdminPin() {
-  if (sessionStorage.getItem('isAdmin') === 'true') return true;
+  // if (sessionStorage.getItem('isAdmin') === 'true') return true;
   const entered = prompt('กรุณาใส่รหัสผ่านสำหรับผู้ดูแล:');
   if (entered === null) return false; // cancelled
   if (entered === ADMIN_PIN) {
-    sessionStorage.setItem('isAdmin', 'true');
+    // sessionStorage.setItem('isAdmin', 'true');
     return true;
   }
   showToast('รหัสผ่านไม่ถูกต้อง');
