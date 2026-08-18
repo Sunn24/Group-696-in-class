@@ -42,7 +42,7 @@ function sortList(list) {
   cards.forEach(card => list.appendChild(card));
 }
 
-function refreshColumn(col) {
+function refreshColumn(col, anyGroupAtHardCap) {
   const isPool = col.classList.contains('pool');
   const list = col.querySelector('.list');
 
@@ -58,13 +58,19 @@ function refreshColumn(col) {
     // already at 5) so the leftover seats spread out instead of piling
     // into one group.
     const isAtHardCap = cardCount >= MAX_PER_GROUP;
-    const effectiveMax = (anotherGroupIsFull && !isAtHardCap) ? MAX_PER_GROUP - 1 : MAX_PER_GROUP;
+    const effectiveMax = (anyGroupAtHardCap && !isAtHardCap) ? MAX_PER_GROUP - 1 : MAX_PER_GROUP;
     countEl.textContent = `${cardCount}/${MAX_PER_GROUP}`;
     col.classList.toggle('over', cardCount > MAX_PER_GROUP);
-    col.classList.toggle('full', cardCount === MAX_PER_GROUP);
+    col.classList.toggle('full', cardCount >= effectiveMax);
   }
-  const placeholder = list.querySelector('.placeholder');
-  if (cardCount === 0 && !placeholder) {
+
+  // The pool is the master roster, not a drop target that should ever look
+  // "empty and waiting" — so it never gets a "ลากมาวางที่นี่" placeholder,
+  // even when every student has been assigned to a group.
+  const placeholder = list.querySelector('.placeholder:not(.no-result)');
+  if (isPool) {
+    if (placeholder) placeholder.remove();
+  } else if (cardCount === 0 && !placeholder) {
     const ph = document.createElement('div');
     ph.className = 'placeholder';
     ph.textContent = 'ลากมาวางที่นี่';
@@ -77,9 +83,8 @@ function refreshColumn(col) {
 function refreshAllColumns() {
   const groupCols = Array.from(document.querySelectorAll('.col:not(.pool)'));
   const anyGroupAtHardCap = groupCols.some(col => col.querySelectorAll('.card').length >= MAX_PER_GROUP);
- 
+
   document.querySelectorAll('.col').forEach(col => refreshColumn(col, anyGroupAtHardCap));
-  //document.querySelectorAll('.col').forEach(refreshColumn);
 }
 
 // ---- Search box for the pool column ----
