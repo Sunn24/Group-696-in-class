@@ -28,6 +28,52 @@ h1 {
   font-size: 13.5px;
   margin: 0 0 28px;
 }
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.admin-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.btn {
+  padding: 8px 14px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: box-shadow .15s ease, border-color .15s ease, transform .05s ease;
+}
+.btn:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn-ghost {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.btn-danger {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+@media (max-width: 480px) {
+  .topbar { flex-direction: column; }
+  .admin-actions { padding-top: 4px; }
+}
 .board {
   display: grid;
   grid-template-columns: 1fr; 
